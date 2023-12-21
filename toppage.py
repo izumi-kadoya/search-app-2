@@ -14,13 +14,18 @@ app = Flask(__name__)
 def is_duplicate(snippet1, snippet2):
     openai.api_key = OPENAI_API_SECRET_KEY
     prompt = f"Determine if the following two news snippets are about the same event.\nSnippet 1: \"{snippet1}\"\nSnippet 2: \"{snippet2}\"\nAre they about the same event?"
-    response = openai.Completion.create(
-        model="text-davinci-003",
-        prompt=prompt,
+    response = openai.ChatCompletion.create(
+        model="gpt-4-1106-preview",
+        messages=[
+            {"role": "user", "content": prompt},
+            {"role": "assistant", "content": ""}
+        ],
         max_tokens=60
     )
-    answer = response.choices[0].text.strip().lower()
+    answer = response.choices[0].message['content'].strip().lower()
     return "yes" in answer
+
+
 
 # 重複除去ロジック
 def remove_duplicates(search_results):
