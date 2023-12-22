@@ -99,7 +99,7 @@ def index():
             {% if unique_search_results %}
                 <ul>
                 {% for item in unique_search_results %}
-                    <li><a href="{{ item.url }}">{{ item.title }}</a> - {{ item.snippet }}</li>
+                    <li><a href="{{ item.url }}">{{ item.title }}</a> <br>- {{ item.snippet }}</li>
                 {% endfor %}
                 </ul>
             {% else %}
