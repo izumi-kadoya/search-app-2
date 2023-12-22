@@ -60,8 +60,17 @@ def index():
         keyword1 = request.form.get('keyword1', '')
         keyword2 = request.form.get('keyword2', '')
         keyword3 = request.form.get('keyword3', '')
+        period = request.form.get('period', 'all')
+
+        if period == '3months':
+            combined_query = f"{keyword1} {keyword2} {keyword3} news after:3m".strip()
+        elif period == '6months':
+            combined_query = f"{keyword1} {keyword2} {keyword3} news after:6m".strip()
+        elif period == '12months':
+            combined_query = f"{keyword1} {keyword2} {keyword3} news after:12m".strip()
+        else:
+            combined_query = f"{keyword1} {keyword2} {keyword3} news".strip()
         
-        combined_query = f"{keyword1} {keyword2} {keyword3}news".strip()
         raw_results = get_search_results(combined_query)
         raw_search_results = summarize_search_results(raw_results)
         unique_search_results = remove_duplicates(raw_search_results)
@@ -75,6 +84,13 @@ def index():
             Keyword 1: <input type="text" name="keyword1"><br>
             Keyword 2: <input type="text" name="keyword2"><br>
             Keyword 3: <input type="text" name="keyword3"><br>
+            Period:
+            <select name="period">
+                <option value="all">All Periods</option>
+                <option value="3months">Last 3 Months</option>
+                <option value="6months">Last 6 Months</option>
+                <option value="12months">Last 12 Months</option>
+            </select><br>
             <input type="submit" value="Search">
         </form>
 
@@ -96,7 +112,7 @@ def index():
             {% if raw_search_results %}
                 <ul>
                 {% for item in raw_search_results %}
-                    <li><a href="{{ item.url }}">{{ item.title }}</a> - {{ item.snippet }}</li>
+                    <li><a href="{{ item.url }}">{{ item.title }}</a> <br>- {{ item.snippet }}</li>
                 {% endfor %}
                 </ul>
             {% else %}
