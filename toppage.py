@@ -54,13 +54,14 @@ def summarize_search_results(items):
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
-    raw_search_results = []  # 重複削除前の結果を格納
-    unique_search_results = []  # 重複削除後の結果を格納
+    raw_search_results = []
+    unique_search_results = []  
     if request.method == 'POST':
         keyword1 = request.form.get('keyword1', '')
         keyword2 = request.form.get('keyword2', '')
         keyword3 = request.form.get('keyword3', '')
-        combined_query = f"{keyword1} {keyword2} {keyword3}".strip()
+        
+        combined_query = f"{keyword1} {keyword2} {keyword3}news".strip()
         raw_results = get_search_results(combined_query)
         raw_search_results = summarize_search_results(raw_results)
         unique_search_results = remove_duplicates(raw_search_results)
