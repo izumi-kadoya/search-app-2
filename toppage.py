@@ -10,10 +10,10 @@ OPENAI_API_SECRET_KEY = os.environ.get('OPENAI_API_SECRET_KEY')
 
 app = Flask(__name__)
 
-# OpenAIのAPIを利用してスニペットが同じ出来事を指しているか判断する関数
-def is_duplicate(snippet1, snippet2):
+# OpenAIのAPIを利用してタイトルが同じ出来事を指しているか判断する関数
+def is_duplicate(title1, title2):
     openai.api_key = OPENAI_API_SECRET_KEY
-    prompt = f"Determine if the following two news snippets are about the same event.\nSnippet 1: \"{snippet1}\"\nSnippet 2: \"{snippet2}\"\nAre they about the same event?"
+    prompt = f"Determine if the following two news titles are about the same event.\nTitle 1: \"{title1}\"\nTitle 2: \"{title2}\"\nAre they about the same event?"
     response = openai.ChatCompletion.create(
         model="gpt-4-1106-preview",
         messages=[
@@ -25,13 +25,11 @@ def is_duplicate(snippet1, snippet2):
     answer = response.choices[0].message['content'].strip().lower()
     return "yes" in answer
 
-
-
 # 重複除去ロジック
 def remove_duplicates(search_results):
     unique_results = []
     for result in search_results:
-        if not any(is_duplicate(result['snippet'], existing_result['snippet']) for existing_result in unique_results):
+        if not any(is_duplicate(result['title'], existing_result['title']) for existing_result in unique_results):
             unique_results.append(result)
     return unique_results
 
@@ -76,51 +74,70 @@ def index():
         unique_search_results = remove_duplicates(raw_search_results)
 
     return render_template_string('''
-    <!doctype html>
-    <html>
-    <head><title>Search with Google</title></head>
-    <body>
-        <form method="post">
-            Keyword 1: <input type="text" name="keyword1"><br>
-            Keyword 2: <input type="text" name="keyword2"><br>
-            Keyword 3: <input type="text" name="keyword3"><br>
-            Period:
-            <select name="period">
-                <option value="all">All Periods</option>
-                <option value="3months">Last 3 Months</option>
-                <option value="6months">Last 6 Months</option>
-                <option value="12months">Last 12 Months</option>
-            </select><br>
-            <input type="submit" value="Search">
-        </form>
+<!doctype html>
+<html>
+<head>
+    <title>Search with Google</title>
+    <style>
+        #loading {
+            display: none;
+            color: blue;
+            font-size: 20px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <form id="searchForm" method="post">
+        Keyword 1: <input type="text" name="keyword1"><br>
+        Keyword 2: <input type="text" name="keyword2"><br>
+        Keyword 3: <input type="text" name="keyword3"><br>
+        Period:
+        <select name="period">
+            <option value="all">All Periods</option>
+            <option value="3months">Last 3 Months</option>
+            <option value="6months">Last 6 Months</option>
+            <option value="12months">Last 12 Months</option>
+        </select><br>
+        <input type="submit" value="Search">
+    </form>
 
-        <h2>Unique Results (Duplicates Removed)</h2>
-        <div style="border: 1px solid #ddd; margin-bottom: 20px;">
-            {% if unique_search_results %}
-                <ul>
-                {% for item in unique_search_results %}
-                    <li><a href="{{ item.url }}">{{ item.title }}</a> <br>- {{ item.snippet }}</li>
-                {% endfor %}
-                </ul>
-            {% else %}
-                <p>No unique results found.</p>
-            {% endif %}
-        </div>
+    <div id="loading">loading...</div>
 
-        <h2>All Results (Before Removing Duplicates)</h2>
-        <div style="border: 1px solid #ddd;">
-            {% if raw_search_results %}
-                <ul>
-                {% for item in raw_search_results %}
-                    <li><a href="{{ item.url }}">{{ item.title }}</a> <br>- {{ item.snippet }}</li>
-                {% endfor %}
-                </ul>
-            {% else %}
-                <p>No results found.</p>
-            {% endif %}
-        </div>
-    </body>
-    </html>
+    <h2>Unique Results (Duplicates Removed)</h2>
+    <div style="border: 1px solid #ddd; margin-bottom: 20px;">
+        {% if unique_search_results %}
+            <ul>
+            {% for item in unique_search_results %}
+                <li><a href="{{ item.url }}">{{ item.title }}</a> <br>- {{ item.snippet }}</li>
+            {% endfor %}
+            </ul>
+        {% else %}
+            <p>No unique results found.</p>
+        {% endif %}
+    </div>
+
+    <h2>All Results (Before Removing Duplicates)</h2>
+    <div style="border: 1px solid #ddd;">
+        {% if raw_search_results %}
+            <ul>
+            {% for item in raw_search_results %}
+                <li><a href="{{ item.url }}">{{ item.title }}</a> <br>- {{ item.snippet }}</li>
+            {% endfor %}
+            </ul>
+        {% else %}
+            <p>No results found.</p>
+        {% endif %}
+    </div>
+
+    <script>
+        document.getElementById('searchForm').onsubmit = function() {
+            document.getElementById('loading').style.display = 'block';
+        };
+    </script>
+</body>
+</html>
+
     ''', unique_search_results=unique_search_results, raw_search_results=raw_search_results)
 
 if __name__ == '__main__':
