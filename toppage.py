@@ -36,8 +36,17 @@ def remove_duplicates(search_results):
 # APIにアクセスして結果を取得するメソッド
 def get_search_results(query):
     search = build("customsearch", "v1", developerKey=API_KEY)
-    result = search.cse().list(q=query, cx=CUSTOM_SEARCH_ENGINE_ID, lr='lang_ja', num=10, start=1).execute()
-    return result.get('items', [])
+    # 最初の10件の検索結果を取得
+    result1 = search.cse().list(q=query, cx=CUSTOM_SEARCH_ENGINE_ID, lr='lang_ja', num=10, start=1).execute()
+    items1 = result1.get('items', [])
+
+    # 次の10件の検索結果を取得
+    result2 = search.cse().list(q=query, cx=CUSTOM_SEARCH_ENGINE_ID, lr='lang_ja', num=10, start=11).execute()
+    items2 = result2.get('items', [])
+
+    # 両方の結果を結合
+    return items1 + items2
+
 
 # 検索結果の情報を整理するメソッド
 def summarize_search_results(items):
