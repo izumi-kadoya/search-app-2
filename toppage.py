@@ -15,7 +15,7 @@ def is_duplicate(title1, title2):
     openai.api_key = OPENAI_API_SECRET_KEY
     prompt = f"Determine if the following two news titles are about the same event.\nTitle 1: \"{title1}\"\nTitle 2: \"{title2}\"\nAre they about the same event?"
     response = openai.ChatCompletion.create(
-        model="gpt-4-1106-preview",
+        model="gpt-3.5-turbo-1106",
         messages=[
             {"role": "user", "content": prompt},
             {"role": "assistant", "content": ""}
@@ -24,6 +24,7 @@ def is_duplicate(title1, title2):
     )
     answer = response.choices[0].message['content'].strip().lower()
     return "yes" in answer
+
 
 # 重複除去ロジック
 def remove_duplicates(search_results):
@@ -36,16 +37,10 @@ def remove_duplicates(search_results):
 # APIにアクセスして結果を取得するメソッド
 def get_search_results(query):
     search = build("customsearch", "v1", developerKey=API_KEY)
-    # 最初の10件の検索結果を取得
-    result1 = search.cse().list(q=query, cx=CUSTOM_SEARCH_ENGINE_ID, lr='lang_ja', num=10, start=1).execute()
-    items1 = result1.get('items', [])
+    result = search.cse().list(q=query, cx=CUSTOM_SEARCH_ENGINE_ID, lr='lang_ja', num=5, start=1).execute()
+    return result.get('items', [])
+# ⭐︎numを１０に変更すること！
 
-    # 次の10件の検索結果を取得
-    result2 = search.cse().list(q=query, cx=CUSTOM_SEARCH_ENGINE_ID, lr='lang_ja', num=10, start=11).execute()
-    items2 = result2.get('items', [])
-
-    # 両方の結果を結合
-    return items1 + items2
 
 
 # 検索結果の情報を整理するメソッド
@@ -70,14 +65,15 @@ def index():
         period = request.form.get('period', 'all')
 
         if period == '3months':
-            combined_query = f"{keyword1} {keyword2} {keyword3} news after:3m".strip()
+            combined_query = f"\"{keyword1}\" AND \"{keyword2}\" AND \"{keyword3}\" after:3m".strip()
         elif period == '6months':
-            combined_query = f"{keyword1} {keyword2} {keyword3} news after:6m".strip()
+            combined_query = f"\"{keyword1}\" AND \"{keyword2}\" AND \"{keyword3}\" after:6m".strip()
         elif period == '12months':
-            combined_query = f"{keyword1} {keyword2} {keyword3} news after:12m".strip()
+            combined_query = f"\"{keyword1}\" AND \"{keyword2}\" AND \"{keyword3}\" after:12m".strip()
         else:
-            combined_query = f"{keyword1} {keyword2} {keyword3} news".strip()
-        
+            combined_query = f"\"{keyword1}\" AND \"{keyword2}\" AND \"{keyword3}\"".strip()
+
+                    
         raw_results = get_search_results(combined_query)
         raw_search_results = summarize_search_results(raw_results)
         unique_search_results = remove_duplicates(raw_search_results)
