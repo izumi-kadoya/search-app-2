@@ -10,29 +10,89 @@ OPENAI_API_SECRET_KEY = os.environ.get('OPENAI_API_SECRET_KEY')
 
 app = Flask(__name__)
 
-# OpenAIのAPIを利用してタイトルが同じ出来事を指しているか判断する関数
-def is_duplicate(title1, title2):
+# 検索結果の情報を整理するメソッド（日付情報の追加）
+def summarize_search_results_with_date(items):
+    result_items = []
+    for item in items:
+        date = item.get('pagemap', {}).get('metatags', [{}])[0].get('date', 'Unknown Date')
+        result_items.append({
+            'title': item['title'],
+            'snippet': item['snippet'],
+            'date': date,
+            'url': item['link']
+        })
+    return result_items
+
+
+# OpenAIのAPIを利用して複数の検索結果間で重複を判定する関数（日付情報を含む）
+def find_duplicates_with_date(search_results):
     openai.api_key = OPENAI_API_SECRET_KEY
-    prompt = f"Determine if the following two news titles are about the same event.\nTitle 1: \"{title1}\"\nTitle 2: \"{title2}\"\nAre they about the same event?"
+    prompt = "Determine if the following news items are about the same event:\n"
+    
+    # 検索結果の情報を組み合わせる
+    for i in range(len(search_results)):
+        for j in range(i+1, len(search_results)):
+            # date キーが存在しない場合はデフォルト値 'Unknown Date' を使用
+            date_i = search_results[i].get('date', 'Unknown Date')
+            date_j = search_results[j].get('date', 'Unknown Date')
+            
+            prompt += f"Item 1: Title: \"{search_results[i]['title']}\", Snippet: \"{search_results[i]['snippet']}\", Date: \"{date_i}\"\n"
+            prompt += f"Item 2: Title: \"{search_results[j]['title']}\", Snippet: \"{search_results[j]['snippet']}\", Date: \"{date_j}\"\n\n"
+
+    # OpenAI APIを呼び出して重複を判定
     response = openai.ChatCompletion.create(
         model="gpt-3.5-turbo-1106",
         messages=[
             {"role": "user", "content": prompt},
             {"role": "assistant", "content": ""}
         ],
-        max_tokens=60
+        max_tokens=1000
     )
-    answer = response.choices[0].message['content'].strip().lower()
-    return "yes" in answer
+    
+    # 応答を解析する
+    answers = response.choices[0].message['content'].strip().lower().split("\n")
+    duplicates = []
+    index = 0
+    for i in range(len(search_results)):
+        for j in range(i+1, len(search_results)):
+            if index < len(answers) and "yes" in answers[index]:
+                duplicates.append((i, j))
+            index += 1
 
+    return duplicates
 
-# 重複除去ロジック
-def remove_duplicates(search_results):
-    unique_results = []
-    for result in search_results:
-        if not any(is_duplicate(result['title'], existing_result['title']) for existing_result in unique_results):
-            unique_results.append(result)
+def remove_duplicates_with_date_improved(search_results):
+    duplicates = find_duplicates_with_date(search_results)
+    
+    # 重複があるインデックスを記録
+    duplicate_indices_to_remove = set()
+    for i, j in duplicates:
+        # 既に重複リストにない場合、2番目の要素を削除リストに追加
+        if i not in duplicate_indices_to_remove:
+            duplicate_indices_to_remove.add(j)
+
+    # 重複がない結果のみを保持する
+    unique_results = [result for i, result in enumerate(search_results) if i not in duplicate_indices_to_remove]
+
     return unique_results
+
+
+def remove_duplicates_with_date_improved(search_results):
+    duplicates = find_duplicates_with_date(search_results)
+    
+    # 重複があるインデックスを記録
+    duplicate_indices_to_remove = set()
+    for i, j in duplicates:
+        # 既に重複リストにない場合、2番目の要素を削除リストに追加
+        if i not in duplicate_indices_to_remove:
+            duplicate_indices_to_remove.add(j)
+
+    # 重複がない結果のみを保持する
+    unique_results = [result for i, result in enumerate(search_results) if i not in duplicate_indices_to_remove]
+
+    return unique_results
+
+
 
 # APIにアクセスして結果を取得するメソッド
 def get_search_results(query):
@@ -84,7 +144,7 @@ def index():
                     
         raw_results = get_search_results(combined_query)
         raw_search_results = summarize_search_results(raw_results)
-        unique_search_results = remove_duplicates(raw_search_results)
+        unique_search_results = remove_duplicates_with_date_improved(raw_search_results)
 
     return render_template_string('''
 <!doctype html>
