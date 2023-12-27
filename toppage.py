@@ -27,7 +27,7 @@ def summarize_search_results_with_date(items):
 # OpenAIのAPIを利用して複数の検索結果間で重複を判定する関数（日付情報を含む）
 def find_duplicates_with_date(search_results):
     openai.api_key = OPENAI_API_SECRET_KEY
-    prompt = "Determine if the following news items are about the same event:\n"
+    prompt = "This is a dataset of news articles with their titles, snippets, and dates. Divide all articles into a few groups based on their similarities.\n"
     
     # 検索結果の情報を組み合わせる
     for i in range(len(search_results)):
@@ -46,7 +46,7 @@ def find_duplicates_with_date(search_results):
             {"role": "user", "content": prompt},
             {"role": "assistant", "content": ""}
         ],
-        max_tokens=1000
+        max_tokens=2000
     )
     
     # 応答を解析する
@@ -98,11 +98,11 @@ def remove_duplicates_with_date_improved(search_results):
 def get_search_results(query):
     search = build("customsearch", "v1", developerKey=API_KEY)
     # 最初の10件の検索結果を取得
-    result1 = search.cse().list(q=query, cx=CUSTOM_SEARCH_ENGINE_ID, lr='lang_en', num=10, start=1).execute()
+    result1 = search.cse().list(q=query, cx=CUSTOM_SEARCH_ENGINE_ID, lr='lang_en', num=5, start=1).execute()
     items1 = result1.get('items', [])
 
     # 次の10件の検索結果を取得
-    result2 = search.cse().list(q=query, cx=CUSTOM_SEARCH_ENGINE_ID, lr='lang_en', num=10, start=11).execute()
+    result2 = search.cse().list(q=query, cx=CUSTOM_SEARCH_ENGINE_ID, lr='lang_en', num=1, start=11).execute()
     items2 = result2.get('items', [])
 
     # 両方の結果を結合
