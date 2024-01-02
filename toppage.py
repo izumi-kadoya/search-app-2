@@ -214,4 +214,4 @@ def index():
     ''', unique_search_results=unique_search_results, raw_search_results=raw_search_results)
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
