@@ -98,7 +98,7 @@ def remove_duplicates_with_date_improved(search_results):
 def get_search_results(query):
     search = build("customsearch", "v1", developerKey=API_KEY)
     # 最初の10件の検索結果を取得
-    result1 = search.cse().list(q=query, cx=CUSTOM_SEARCH_ENGINE_ID, lr='lang_en', num=5, start=1).execute()
+    result1 = search.cse().list(q=query, cx=CUSTOM_SEARCH_ENGINE_ID, lr='lang_en', num=3, start=1).execute()
     items1 = result1.get('items', [])
 
     # 次の10件の検索結果を取得
