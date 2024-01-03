@@ -132,7 +132,14 @@ def index():
         keyword3 = request.form.get('keyword3', '')
         period = request.form.get('period', 'all')
 
-        if period == '3months':
+        # 新しい期間オプションに基づいてクエリを設定
+        if period == '1day':
+            combined_query = f"\"{keyword1}\" AND \"{keyword2}\" AND \"{keyword3}\" after:1d".strip()
+        elif period == '7days':
+            combined_query = f"\"{keyword1}\" AND \"{keyword2}\" AND \"{keyword3}\" after:7d".strip()
+        elif period == '1month':
+            combined_query = f"\"{keyword1}\" AND \"{keyword2}\" AND \"{keyword3}\" after:1m".strip()
+        elif period == '3months':
             combined_query = f"\"{keyword1}\" AND \"{keyword2}\" AND \"{keyword3}\" after:3m".strip()
         elif period == '6months':
             combined_query = f"\"{keyword1}\" AND \"{keyword2}\" AND \"{keyword3}\" after:6m".strip()
@@ -141,7 +148,6 @@ def index():
         else:
             combined_query = f"\"{keyword1}\" AND \"{keyword2}\" AND \"{keyword3}\"".strip()
 
-                    
         raw_results = get_search_results(combined_query)
         raw_search_results = summarize_search_results(raw_results)
         unique_search_results = remove_duplicates_with_date_improved(raw_search_results)
@@ -168,6 +174,9 @@ def index():
         Period:
         <select name="period">
             <option value="all">All Periods</option>
+            <option value="1day">Last 1 Day</option>
+            <option value="7days">Last 7 Days</option>
+            <option value="1month">Last 1 Month</option>
             <option value="3months">Last 3 Months</option>
             <option value="6months">Last 6 Months</option>
             <option value="12months">Last 12 Months</option>
@@ -207,7 +216,8 @@ def index():
         document.getElementById('searchForm').onsubmit = function() {
             document.getElementById('loading').style.display = 'block';
         };
-    </script>
+    </script
+
 </body>
 </html>
 
