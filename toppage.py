@@ -27,54 +27,35 @@ def summarize_search_results_with_date(items):
 # OpenAIのAPIを利用して複数の検索結果間で重複を判定する関数（日付情報を含む）
 def find_duplicates_with_date(search_results):
     openai.api_key = OPENAI_API_SECRET_KEY
-    prompt = "This is a dataset of news articles with their titles, snippets, and dates. Divide all articles into a few groups based on their similarities.\n"
-    
+    prompt = "This is a dataset of news articles with their titles, snippets, and dates. Divide all articles into a few groups based on their similarities.\n\n"
+
     # 検索結果の情報を組み合わせる
     for i in range(len(search_results)):
-        for j in range(i+1, len(search_results)):
-            # date キーが存在しない場合はデフォルト値 'Unknown Date' を使用
-            date_i = search_results[i].get('date', 'Unknown Date')
-            date_j = search_results[j].get('date', 'Unknown Date')
-            
-            prompt += f"Item 1: Title: \"{search_results[i]['title']}\", Snippet: \"{search_results[i]['snippet']}\", Date: \"{date_i}\"\n"
-            prompt += f"Item 2: Title: \"{search_results[j]['title']}\", Snippet: \"{search_results[j]['snippet']}\", Date: \"{date_j}\"\n\n"
+        date_i = search_results[i].get('date', 'Unknown Date')
+        prompt += f"Article {i+1}: Title: \"{search_results[i]['title']}\", Snippet: \"{search_results[i]['snippet']}\", Date: \"{date_i}\"\n"
+
+    prompt += "\nAre any of the above articles duplicates of each other? If yes, list the article numbers that are duplicates."
 
     # OpenAI APIを呼び出して重複を判定
-    response = openai.ChatCompletion.create(
+    response = openai.Completion.create(
         model="gpt-3.5-turbo-1106",
-        messages=[
-            {"role": "user", "content": prompt},
-            {"role": "assistant", "content": ""}
-        ],
+        prompt=prompt,
         max_tokens=2000
     )
-    
+
     # 応答を解析する
-    answers = response.choices[0].message['content'].strip().lower().split("\n")
+    answers = response['choices'][0]['text'].strip().lower()
     duplicates = []
-    index = 0
-    for i in range(len(search_results)):
-        for j in range(i+1, len(search_results)):
-            if index < len(answers) and "yes" in answers[index]:
-                duplicates.append((i, j))
-            index += 1
+    if "no" not in answers:
+        # 応答から数字のペアを抽出する処理
+        lines = answers.split("\n")
+        for line in lines:
+            if "article" in line:
+                indices = [int(word) - 1 for word in line.split() if word.isdigit()]
+                duplicates.extend(indices)
 
     return duplicates
 
-def remove_duplicates_with_date_improved(search_results):
-    duplicates = find_duplicates_with_date(search_results)
-    
-    # 重複があるインデックスを記録
-    duplicate_indices_to_remove = set()
-    for i, j in duplicates:
-        # 既に重複リストにない場合、2番目の要素を削除リストに追加
-        if i not in duplicate_indices_to_remove:
-            duplicate_indices_to_remove.add(j)
-
-    # 重複がない結果のみを保持する
-    unique_results = [result for i, result in enumerate(search_results) if i not in duplicate_indices_to_remove]
-
-    return unique_results
 
 
 def remove_duplicates_with_date_improved(search_results):
